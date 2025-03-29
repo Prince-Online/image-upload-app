@@ -1,35 +1,26 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Folder to save images
-const UPLOADS_FOLDER = "C:/Users/creat/OneDrive/Desktop/images/";
-
-// Ensure the folder exists
-if (!fs.existsSync(UPLOADS_FOLDER)) {
-    fs.mkdirSync(UPLOADS_FOLDER, { recursive: true });
-}
-
-// Multer storage config
+// Storage setup for Render (uses temporary storage)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, UPLOADS_FOLDER);
+        cb(null, "uploads/"); // Uploads to a folder inside Render
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
     }
 });
 
 const upload = multer({ storage: storage });
 
-// Serve uploaded images as static files
-app.use("/uploads", express.static(UPLOADS_FOLDER));
+// Serve uploaded images publicly
+app.use("/uploads", express.static("uploads"));
 
-// Route to serve the HTML page
+// Serve the HTML upload page
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -40,6 +31,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
         return res.status(400).json({ success: false, error: "No file uploaded" });
     }
 
+    // Generate the public image URL
     const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     res.json({ success: true, url: imageUrl });
 });
